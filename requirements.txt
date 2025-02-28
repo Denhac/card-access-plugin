@@ -1,0 +1,3 @@
+card_automation_server @ git+https://github.com/card-automation/card-server
+tomlkit
+uuid
