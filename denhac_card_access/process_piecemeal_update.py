@@ -11,7 +11,7 @@ from denhac_card_access.config import Config
 
 class _CardCommand(TypedDict):
     id: int
-    update_method: Literal["enable", "disable", "unknown"]
+    method: Literal["enable", "disable", "unknown"]
     card: int
     company: str
     woo_id: int
@@ -86,10 +86,10 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
         activating_or_deactivating: str
 
-        if command["update_method"] == "enable":
+        if command["method"] == "enable":
             activating_or_deactivating = "Activating"
             card.with_access(self._config.denhac_access)
-        elif command["update_method"] == "disable":
+        elif command["method"] == "disable":
             activating_or_deactivating = "Deactivating"
             card.without_access(self._config.denhac_access)
         else:
