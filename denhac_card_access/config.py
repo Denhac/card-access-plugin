@@ -122,5 +122,9 @@ class Config(BaseConfig):
         return "Server Room"
 
     @property
+    def main_building_access(self) -> str:
+        return "MBD Access"
+
+    @property
     def company_id(self) -> int:
         return 14

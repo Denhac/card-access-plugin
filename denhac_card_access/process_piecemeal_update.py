@@ -91,7 +91,16 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             card.with_access(self._config.denhac_access)
         elif command["method"] == "disable":
             activating_or_deactivating = "Deactivating"
-            card.without_access(self._config.denhac_access)
+            # A member could have any of these. We're de-activating their entire card for anything we might control.
+            to_remove = [
+                self._config.denhac_access,
+                self._config.server_room_access,
+                self._config.main_building_access,
+            ]
+
+            for access in to_remove:
+                if access in card.access:
+                    card.without_access(access)
         else:
             raise Exception(f"Unknown update method for {update_id}")
 
