@@ -86,9 +86,13 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
         activating_or_deactivating: str
 
+        anything_updated = False
+
         if command["method"] == "enable":
             activating_or_deactivating = "Activating"
-            card.with_access(self._config.denhac_access)
+            if self._config.denhac_access not in card.access:
+                card.with_access(self._config.denhac_access)
+                anything_updated = True
         elif command["method"] == "disable":
             activating_or_deactivating = "Deactivating"
             # A member could have any of these. We're de-activating their entire card for anything we might control.
@@ -99,8 +103,11 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             ]
 
             for access in to_remove:
-                if access in card.access:
-                    card.without_access(access)
+                if access not in card.access:
+                    continue
+
+                card.without_access(access)
+                anything_updated = True
         else:
             raise Exception(f"Unknown update method for {update_id}")
 
@@ -109,7 +116,10 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         )
         self._name_card_to_request[person.id, command["card"]] = update_id
 
-        card.write()
+        if anything_updated:
+            card.write()
+        else:
+            self._mark_complete(card)
 
     def _get_commands(self) -> list[_CardCommand]:
         response = self._config.webhooks.session.get(f"{self._api_base}/card_updates")
@@ -123,6 +133,9 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         return json_response["data"]
 
     def card_data_pushed(self, access_card: AccessCard) -> None:
+        self._mark_complete(access_card)
+
+    def _mark_complete(self, access_card: AccessCard) -> None:
         person = access_card.person
         item = person.id, access_card.card_number
         if item not in self._name_card_to_request:
