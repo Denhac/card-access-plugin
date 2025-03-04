@@ -65,7 +65,7 @@ class _WebhookConfig(ConfigHolder):
 
     @property
     def session(self) -> Session:
-        if self._config.webhooks.api_key is None:
+        if self.api_key is None:
             raise Exception("Webhooks base url cannot be None")
 
         session = requests.Session()
