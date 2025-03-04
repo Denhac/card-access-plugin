@@ -114,7 +114,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._config.slack.emit(
             f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
         )
-        self._name_card_to_request[person.id, command["card"]] = update_id
+        self._name_card_to_request[person.id, card.card_number] = update_id
 
         if anything_updated:
             card.write()
@@ -139,6 +139,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         person = access_card.person
         item = person.id, access_card.card_number
         if item not in self._name_card_to_request:
+            print("Could not find update")
             return  # We didn't submit this request or have forgotten about it. Don't notify anyone
 
         activated_or_deactivated = "activated" if self._config.denhac_access in access_card.access else "deactivated"
@@ -148,6 +149,8 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         )
 
         update_id = self._name_card_to_request[item]
+
+        self._logger.info(f"Processed update {update_id}")
         del self._name_card_to_request[item]
         if update_id in self._known_requests:
             self._known_requests.remove(update_id)
