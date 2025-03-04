@@ -90,7 +90,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
         if command["method"] == "enable":
             activating_or_deactivating = "Activating"
-            if self._config.denhac_access not in card.access:
+            if not card.active or self._config.denhac_access not in card.access:
                 card.with_access(self._config.denhac_access)
                 anything_updated = True
         elif command["method"] == "disable":
