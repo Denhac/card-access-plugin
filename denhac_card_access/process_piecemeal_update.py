@@ -76,8 +76,10 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             person.last_name = command["last_name"]
             person.company_id = self._config.company_id
             person.write()
+            self._logger.info(f"Created person {person.id}: {person.first_name} {person.last_name}")
         else:
             person = people[0]
+            self._logger.info(f"Found person {person.id}: {person.first_name} {person.last_name}")
 
         # We've got the person now. Time for the card
 
@@ -91,6 +93,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         if command["method"] == "enable":
             activating_or_deactivating = "Activating"
             if not card.active or self._config.denhac_access not in card.access:
+                self._logger.info(f"Adding `{self._config.denhac_access}` access level to {card.card_number}")
                 card.with_access(self._config.denhac_access)
                 anything_updated = True
         elif command["method"] == "disable":
@@ -106,17 +109,19 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
                 if access not in card.access:
                     continue
 
+                self._logger.info(f"Removing `{access}` from {card.card_number}")
                 card.without_access(access)
                 anything_updated = True
         else:
             raise Exception(f"Unknown update method for {update_id}")
 
-        self._config.slack.emit(
-            f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
-        )
+        # self._config.slack.emit(
+        #     f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
+        # )
         self._name_card_to_request[person.id, card.card_number] = update_id
 
         if anything_updated:
+            self._logger.info("Writing Card")
             card.write()
         else:
             self._mark_complete(card)
