@@ -5,6 +5,8 @@ import requests
 import tomlkit
 from card_automation_server.plugins.config import BaseConfig, ConfigHolder, ConfigPath, ConfigProperty, TomlConfigType
 from requests import Session
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 
 # Enum values match weekday() from datetime.weekday()
@@ -72,7 +74,12 @@ class _WebhookConfig(ConfigHolder):
         session.headers["Authorization"] = f"Bearer {self.api_key}"
         session.headers["Accept"] = "application/json"
 
-        # TODO Retry logic
+
+        retries = Retry(total=50,
+                        backoff_factor=0.1,
+                        status_forcelist=[500, 502, 503, 504])
+
+        session.mount('https://', HTTPAdapter(max_retries=retries))
 
         return session
 
