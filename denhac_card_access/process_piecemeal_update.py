@@ -116,9 +116,9 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         else:
             raise Exception(f"Unknown update method for {update_id}")
 
-        # self._config.slack.emit(
-        #     f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
-        # )
+        self._config.slack.emit(
+            f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
+        )
         item = person.id, card.card_number
 
         self._logger.info(f"Setting update {update_id} to `{person.id}` and `{card.card_number}`: {item}")
@@ -148,6 +148,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         person = access_card.person
         item = person.id, access_card.card_number
         self._logger.info(f"Update was for `{person.id}` and `{access_card.card_number}`: {item}")
+
         if item not in self._name_card_to_request:
             self._logger.info("Could not find update")
             return  # We didn't submit this request or have forgotten about it. Don't notify anyone
