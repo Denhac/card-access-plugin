@@ -75,6 +75,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             person.first_name = command["first_name"]
             person.last_name = command["last_name"]
             person.company_id = self._config.company_id
+            person.user_defined_fields[self._config.udf_key_denhac_id] = customer_uuid
             person.write()
             self._logger.info(f"Created person {person.id}: {person.first_name} {person.last_name}")
         else:
