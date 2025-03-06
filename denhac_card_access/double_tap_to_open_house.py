@@ -31,7 +31,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
     def loop(self) -> int:
         # Every minute, clear out all the card scans older than `_scan_within` time before now.
         before = datetime.now() - self._scan_within
-        # self._card_scans = [x for x in self._card_scans if x.scan_time >= before]
+        self._card_scans = [x for x in self._card_scans if x.scan_time >= before]
 
         return 60
 
@@ -42,12 +42,11 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         if door is None:
             return
 
-        self._logger.info(f"Got a card scan from name id {card_scan.name_id}")
-
         now = datetime.now()
         before = now - self._scan_within
 
         self._logger.info(f"Before: {before}")
+        self._logger.info(f"# Card scans: {len(self._card_scans)}")
         for cs in self._card_scans:
             self._logger.info(f"Card Scans: {cs}")
 
