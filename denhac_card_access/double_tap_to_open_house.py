@@ -67,7 +67,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         person: Person = self._person_lookup.by_id(card_scan.name_id)
         self._logger.info(f"{person.first_name} {person.last_name} double tapped for an open house")
 
-        if self._config.udf_key_can_open_house not in person:
+        if self._config.udf_key_can_open_house not in person.user_defined_fields:
             self._logger.info(f"They are not allowed to activate open house")
             return  # They definitely can't open house
 
