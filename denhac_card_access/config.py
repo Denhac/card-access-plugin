@@ -36,10 +36,13 @@ class _OpenHouseConfigs(ConfigHolder):
         return self._config.keys()
 
     def values(self):
-        return self._config.values()
+        return [OpenHouseConfig(oh) for oh in self._config.values()]
 
     def items(self):
-        return self._config.items()
+        result = {
+            name: OpenHouseConfig(oh) for (name, oh) in self._config.items()
+        }
+        return result.items()
 
     def __len__(self):
         return len(self._config.items())
@@ -73,7 +76,6 @@ class _WebhookConfig(ConfigHolder):
         session = requests.Session()
         session.headers["Authorization"] = f"Bearer {self.api_key}"
         session.headers["Accept"] = "application/json"
-
 
         retries = Retry(total=50,
                         backoff_factor=0.1,
