@@ -35,6 +35,9 @@ class SubmitCardScan(PluginCardScanned):
         access_granted: bool = card_scan.event_type == CardScanEventType.ACCESS_GRANTED
         person: Person = self._person_lookup.by_id(card_scan.name_id)
 
+        if self._config.udf_key_denhac_id not in person.user_defined_fields:
+            return  # Not a denhac member
+
         if access_granted:
             self._logger.info(f"ACCESS GRANTED Loc={door.location_id} Door={door.device_id} Name=`{door.name}`")
         else:
