@@ -31,11 +31,12 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
     def loop(self) -> int:
         # Every minute, clear out all the card scans older than `_scan_within` time before now.
         before = datetime.now() - self._scan_within
-        # self._card_scans = [x for x in self._card_scans if x.scan_time < before]
+        # self._card_scans = [x for x in self._card_scans if x.scan_time >= before]
 
         return 60
 
     def card_scanned(self, card_scan: CardScan) -> None:
+        self._logger.info(f"Card scan: {card_scan}")
         # Not one of the doors denhac has access to
         door: Optional[Door] = self._door_lookup.by_card_scan(card_scan)
         if door is None:
