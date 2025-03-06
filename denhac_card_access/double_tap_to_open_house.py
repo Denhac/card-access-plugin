@@ -48,8 +48,8 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         before = now - self._scan_within
 
         self._logger.info(f"Before: {before}")
-        for card_scan in self._card_scans:
-            self._logger.info(f"Card Scans: {card_scan}")
+        for cs in self._card_scans:
+            self._logger.info(f"Card Scans: {cs}")
 
         matching_scans = [
             x for x in self._card_scans
