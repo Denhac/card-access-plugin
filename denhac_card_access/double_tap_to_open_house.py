@@ -41,6 +41,8 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         if door is None:
             return
 
+        self._logger.info(f"Got a card scan from name id {card_scan.name_id}")
+
         now = datetime.now()
         before = now - self._scan_within
 
@@ -55,6 +57,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         self._card_scans.append(card_scan)
 
         if len(matching_scans) == 0:
+            self._logger.info("No matching scans")
             return  # Nothing more to do, we didn't get a matching scan within the last `_scan_within`
 
         person: Person = self._person_lookup.by_id(card_scan.name_id)
