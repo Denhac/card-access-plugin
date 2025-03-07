@@ -90,7 +90,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             return  # It's a bad time to try and open house
 
         # We shouldn't have multiple overlapping open houses, but if we do, we pick the one with the closest end time
-        open_house_name = sorted(valid_open_houses.items(), key=lambda x: x[1][x.end_time])[0][0]
+        open_house_name = sorted(valid_open_houses.items(), key=lambda x: x[1].end_time)[0][0]
         open_house: OpenHouseConfig = valid_open_houses[open_house_name]
 
         time_difference: timedelta = datetime.combine(now.today(), open_house.end_time) - now
