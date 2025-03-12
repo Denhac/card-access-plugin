@@ -110,7 +110,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._config.slack.emit(
             f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
         )
-        item = person.id, card.card_number
+        item = person.id, int(card.card_number)
 
         self._logger.info(f"Setting update {update_id} to `{person.id}` and `{card.card_number}`: {item}")
         self._name_card_to_request[item] = update_id
