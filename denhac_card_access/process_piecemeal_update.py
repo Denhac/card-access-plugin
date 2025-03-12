@@ -59,15 +59,6 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         customer_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, str(command["woo_id"])))
 
         people = self._person_lookup.by_udf(self._config.udf_key_denhac_id, customer_uuid).find()
-        if len(people) == 0:
-            # Might be someone new or might need to fall back to the default ID.
-            # TODO Remove this when we're fully deployed
-            people = self._person_lookup.by_udf("ID", customer_uuid).find()
-            # Let's just migrate them over to use the correct UDF key
-            for person in people:
-                person.user_defined_fields[self._config.udf_key_denhac_id] = customer_uuid
-                del person.user_defined_fields["ID"]
-                person.write()
 
         person: Person
         if len(people) == 0:
