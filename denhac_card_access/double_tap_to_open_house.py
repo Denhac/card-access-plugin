@@ -96,7 +96,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         time_difference: timedelta = datetime.combine(now.today(), open_house.end_time) - now
 
         # Are we initiating or closing open house mode?
-        initiating = self._current_open_house = None
+        initiating = self._current_open_house is None
         self._current_open_house = open_house if initiating else None
 
         if initiating:
