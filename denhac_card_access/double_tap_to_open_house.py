@@ -109,12 +109,17 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             )
 
         for door_id in open_house.door_ids:
+            self._logger.info(f"Lookup up door with id {door_id}")
             door: Optional[Door] = self._door_lookup.by_id(door_id)
 
             if door is None:
                 continue
 
+            self._logger.info("Found the door!")
+
             if initiating:
+                self._logger.info(f"Opening it up for {time_difference}")
                 door.open(time_difference)
             else:
+                self._logger.info("Time zoned!")
                 door.timezone()
