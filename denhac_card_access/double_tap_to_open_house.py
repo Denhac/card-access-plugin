@@ -33,6 +33,12 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         before = datetime.now() - self._scan_within
         self._card_scans = [x for x in self._card_scans if x.scan_time >= before]
 
+        if self._current_open_house is not None:
+            now = datetime.now()
+            end_time = datetime.combine(now, self._current_open_house.end_time)
+            if now > end_time:
+                self._current_open_house = None
+
         return 60
 
     def card_scanned(self, card_scan: CardScan) -> None:
@@ -93,7 +99,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         open_house_name = sorted(valid_open_houses.items(), key=lambda x: x[1].end_time)[0][0]
         open_house: OpenHouseConfig = valid_open_houses[open_house_name]
 
-        time_difference: timedelta = datetime.combine(now.today(), open_house.end_time) - now
+        time_difference: timedelta = datetime.combine(datetime.today(), open_house.end_time) - now
 
         # Are we initiating or closing open house mode?
         initiating = self._current_open_house is None
@@ -107,6 +113,8 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             self._logger.info(
                 f"{person.first_name} {person.last_name} stopped open house mode `{open_house_name}` at {now}"
             )
+
+        self._logger.info(f"There are {len(open_house.door_ids)} doors we can open")
 
         for door_id in open_house.door_ids:
             self._logger.info(f"Lookup up door with id {door_id}")
