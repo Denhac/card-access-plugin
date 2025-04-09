@@ -24,7 +24,7 @@ class OpenHouseConfig(ConfigHolder):
     day_of_week: ConfigProperty[Weekday]
     scan_after_time: ConfigProperty[time]
     end_time: ConfigProperty[time]
-    door_ids: list[int]
+    door_ids: ConfigProperty[list[int]]
 
 
 class _OpenHouseConfigs(ConfigHolder):
