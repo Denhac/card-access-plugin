@@ -70,6 +70,10 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             self._logger.info("No matching scans")
             return  # Nothing more to do, we didn't get a matching scan within the last `_scan_within`
 
+        # Remove the card scans so 3 taps isn't open and then immediately close
+        for scan in matching_scans:
+            self._card_scans.remove(scan)
+
         person: Person = self._person_lookup.by_id(card_scan.name_id)
         self._logger.info(f"{person.first_name} {person.last_name} double tapped for an open house")
 
