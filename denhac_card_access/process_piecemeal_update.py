@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TypedDict, Literal, Optional
 
 from card_automation_server.plugins.interfaces import PluginLoop, PluginCardDataPushed
@@ -47,7 +47,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             finally:
                 self._known_requests.add(command["id"])
 
-        return 60
+        return int(timedelta(minutes=1).total_seconds())
 
     def _maybe_handle_request(self, command: _CardCommand):
         update_id = command["id"]

@@ -39,7 +39,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             if now > end_time:
                 self._current_open_house = None
 
-        return 60
+        return int(timedelta(minutes=1).total_seconds())
 
     def card_scanned(self, card_scan: CardScan) -> None:
         self._logger.info(f"Card scan: {card_scan}")
