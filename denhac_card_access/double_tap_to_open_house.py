@@ -61,7 +61,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             if x.name_id == card_scan.name_id
                and x.device == card_scan.device
                and x.location_id == card_scan.location_id
-               and x.scan_time >= before
+               and x.scan_time >= card_scan.scan_time
         ]
 
         self._card_scans.append(card_scan)
