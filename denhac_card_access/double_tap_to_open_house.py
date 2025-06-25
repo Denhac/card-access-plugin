@@ -39,7 +39,7 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
             if now > end_time:
                 self._current_open_house = None
 
-        return int(timedelta(minutes=1).total_seconds())
+        return int(self._scan_within.total_seconds())
 
     def card_scanned(self, card_scan: CardScan) -> None:
         self._logger.info(f"Card scan: {card_scan}")
@@ -48,10 +48,6 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         if door is None:
             return
 
-        now = datetime.now()
-        before = now - self._scan_within
-
-        self._logger.info(f"Before: {before}")
         self._logger.info(f"# Card scans: {len(self._card_scans)}")
         for cs in self._card_scans:
             self._logger.info(f"Card Scans: {cs}")
@@ -73,6 +69,9 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         # Remove the card scans so 3 taps isn't open and then immediately close
         for scan in matching_scans:
             self._card_scans.remove(scan)
+
+        # Also remove the current scan that happened to trigger this
+        self._card_scans.remove(card_scan)
 
         person: Person = self._person_lookup.by_id(card_scan.name_id)
         self._logger.info(f"{person.first_name} {person.last_name} double tapped for an open house")
