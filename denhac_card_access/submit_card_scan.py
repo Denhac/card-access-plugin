@@ -1,7 +1,7 @@
 from typing import Optional
 
 from card_automation_server.plugins.interfaces import PluginCardScanned
-from card_automation_server.plugins.types import CardScan, CardScanEventType
+from card_automation_server.plugins.types import CardScan, CommServerEventType
 from card_automation_server.windsx.lookup.door_lookup import DoorLookup, Door
 from card_automation_server.windsx.lookup.person import Person, PersonLookup
 
@@ -33,8 +33,8 @@ class SubmitCardScan(PluginCardScanned):
             return
 
         self._logger.info(f"Card scan event type: {card_scan.event_type}")
-        self._logger.info(f"Access granted event type: {CardScanEventType.ACCESS_GRANTED}")
-        access_granted: bool = card_scan.event_type == CardScanEventType.ACCESS_GRANTED
+        self._logger.info(f"Access granted event type: {CommServerEventType.ACCESS_GRANTED}")
+        access_granted: bool = card_scan.event_type == CommServerEventType.ACCESS_GRANTED
         person: Person = self._person_lookup.by_id(card_scan.name_id)
 
         if self._config.udf_key_denhac_id not in person.user_defined_fields:
