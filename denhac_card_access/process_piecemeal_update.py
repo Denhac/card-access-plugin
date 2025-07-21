@@ -110,7 +110,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._config.slack.emit(
             f"{activating_or_deactivating} card {command['card']} for {command['first_name']} {command['last_name']}"
         )
-        item = person.id, int(card.card_number)
+        item = int(person.id), int(card.card_number)
 
         self._logger.info(f"Setting update {update_id} to `{person.id}` and `{card.card_number}`: {item}")
         self._name_card_to_request[item] = update_id
@@ -137,7 +137,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
     def _mark_complete(self, access_card: AccessCard) -> None:
         person = access_card.person
-        item = person.id, access_card.card_number
+        item = int(person.id), int(access_card.card_number)
         self._logger.info(f"Update was for `{person.id}` and `{access_card.card_number}`: {item}")
 
         if item not in self._name_card_to_request:
