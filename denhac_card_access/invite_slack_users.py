@@ -52,10 +52,9 @@ class InviteSlackUsers(PluginLoop):
                 self._invite_time[email] = now + self._time_between_same_invite
                 self._failed_invite_count[email] += 1
 
-                if self._failed_invite_count[email] == 100:
+                if self._failed_invite_count[email] == 10:
                     raise ex
 
-        self._logger.info('Slack Invite loop end')
         return int(timedelta(minutes=1).total_seconds())
 
     def _get_invites(self):
