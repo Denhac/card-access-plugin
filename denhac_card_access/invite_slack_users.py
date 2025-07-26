@@ -28,6 +28,7 @@ class InviteSlackUsers(PluginLoop):
         now = datetime.now()
         for invite in self._get_invites():
             email = invite['email']
+            self._logger.info(f'[Slack] Looking at invite for {email}')
 
             if self._handle_existing_user(email):
                 continue
@@ -54,6 +55,7 @@ class InviteSlackUsers(PluginLoop):
                 if self._failed_invite_count[email] == 100:
                     raise ex
 
+        self._logger.info('Slack Invite loop end')
         return int(timedelta(minutes=1).total_seconds())
 
     def _get_invites(self):
@@ -70,7 +72,7 @@ class InviteSlackUsers(PluginLoop):
         if slack_user_id is None:
             return False
 
-        self._logger.info(f"[Slack] Find existing user for {email}")
+        self._logger.info(f"[Slack] Found existing user for {email}")
 
         response = self._config.webhooks.session.post(
             f"{self._api_base}/slack/invites",
@@ -87,8 +89,8 @@ class InviteSlackUsers(PluginLoop):
         return True
 
     def _cleanup_failed_invites(self, email: str):
-        if email in self._time_between_same_invite:
-            del self._time_between_same_invite
+        if email in self._invite_time:
+            del self._invite_time[email]
 
         if email in self._failed_invite_count:
-            del self._failed_invite_count
+            del self._failed_invite_count[email]
