@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import TypedDict, Literal, Optional
+from typing import TypedDict, Literal, Optional, Tuple
 
 from card_automation_server.plugins.interfaces import PluginLoop, PluginCardDataPushed
 from card_automation_server.windsx.lookup.access_card import AccessCardLookup, AccessCard
@@ -38,7 +38,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._person_lookup = person_lookup
         self._access_card_lookup = access_card_lookup
         self._known_requests: set[int] = set()
-        self._name_card_to_request: dict[(int, int), int] = {}
+        self._name_card_to_request: dict[Tuple[int, int], int] = {}
 
     def loop(self) -> Optional[int]:
         for command in self._get_commands():

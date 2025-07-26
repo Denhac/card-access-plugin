@@ -1,9 +1,11 @@
 import enum
+import json
 from datetime import time
+from typing import Optional
 
 import requests
 import tomlkit
-from card_automation_server.plugins.config import BaseConfig, ConfigHolder, ConfigPath, ConfigProperty, TomlConfigType
+from card_automation_server.plugins.config import BaseConfig, ConfigHolder, ConfigProperty, TomlConfigType
 from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
@@ -71,7 +73,7 @@ class _WebhookConfig(ConfigHolder):
     @property
     def session(self) -> Session:
         if self.api_key is None:
-            raise Exception("Webhooks base url cannot be None")
+            raise Exception("Webhooks api key cannot be None")
 
         session = requests.Session()
         session.headers["Authorization"] = f"Bearer {self.api_key}"
@@ -88,6 +90,9 @@ class _WebhookConfig(ConfigHolder):
 
 class _SlackConfig(ConfigHolder):
     webhook_url: ConfigProperty[str]
+    team_id: ConfigProperty[str]
+    admin_token: ConfigProperty[str]
+    management_token: ConfigProperty[str]
 
     def emit(self, message: str) -> None:
         if self.webhook_url is None:
@@ -106,6 +111,67 @@ class _SlackConfig(ConfigHolder):
         }
 
         requests.post(self.webhook_url, json=payload)
+
+    def user_id_by_email(self, email: str) -> Optional[str]:
+        if self.management_token is None:
+            raise Exception("Slack management token cannot be None")
+
+        response = requests.get(
+            "https://denhac.slack.com/api/users.lookupByEmail",
+            params={
+                "email": email
+            },
+            headers={
+                "Authorization": f"Bearer {self.management_token}"
+            }
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+        if data["ok"]:
+            return data["user"]["id"]
+
+        if data["error"] == "users_not_found":
+            return None
+
+        raise Exception(f"Unknown error looking up invite for {email}: {data['error']}")
+
+    def invite_user(self, email: str, invite_type: str, channels: list[str]):
+        if self.team_id is None:
+            raise Exception("Slack team id cannot be None")
+        if self.admin_token is None:
+            raise Exception("Slack admin token cannot be None")
+
+        user_invite_data = {
+            'email': email,
+            'type': invite_type,
+            'mode': 'manual',
+        }
+
+        response = requests.post(
+            "https://denhac.slack.com/api/users.admin.inviteBulk",
+            data={
+                'token': self.admin_token,
+                # This method only invites one user, the endpoint accepts an array
+                'invites': json.dumps([user_invite_data]),
+                'team_id': self.team_id,
+                'restricted': invite_type == 'restricted',
+                'ultra_restricted': invite_type == 'ultra_restricted',
+                'campaign': 'team_site_admin',
+                'channels': ','.join(channels),
+                '_x_reason': 'submit-invite-to-workspace-invites',
+                '_x_node': 'online',
+            }
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+        if not data["ok"]:
+            raise Exception(f"Got invalid response when inviting {email}: {data['error']}")
+
+        return True
 
 
 class Config(BaseConfig):
