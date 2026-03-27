@@ -75,7 +75,11 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
         # We've got the person now. Time for the card
 
-        card = self._access_card_lookup.by_card_number(command["card"])
+        card_number = command["card"]
+        card = self._access_card_lookup.by_card_number(card_number)
+        if card is None:
+            card = self._access_card_lookup.new(card_number)
+
         card.person = person
 
         activating_or_deactivating: str
