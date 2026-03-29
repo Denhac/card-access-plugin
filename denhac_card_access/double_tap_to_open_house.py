@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from typing import Optional
 
 from card_automation_server.plugins.interfaces import PluginCardScanned, PluginLoop
-from card_automation_server.plugins.types import CardScan
+from card_automation_server.plugins.types import CardScan, CommServerEventType
 from card_automation_server.windsx.lookup.door_lookup import DoorLookup, Door
 from card_automation_server.windsx.lookup.person import PersonLookup, Person
 
@@ -43,6 +43,15 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
 
     def card_scanned(self, card_scan: CardScan) -> None:
         self._logger.info(f"Card scan: {card_scan}")
+
+        # Access was not allowed
+        if card_scan.event_type != CommServerEventType.ACCESS_GRANTED:
+            return
+
+        # We don't know who this is
+        if card_scan.name_id is None:
+            return
+
         # Not one of the doors denhac has access to
         door: Optional[Door] = self._door_lookup.by_card_scan(card_scan)
         if door is None:
@@ -74,6 +83,9 @@ class DoubleTapToOpenHouse(PluginCardScanned, PluginLoop):
         self._card_scans.remove(card_scan)
 
         person: Person = self._person_lookup.by_id(card_scan.name_id)
+        if person is None:
+            return
+
         self._logger.info(f"{person.first_name} {person.last_name} double tapped for an open house")
 
         if self._config.udf_key_can_open_house not in person.user_defined_fields:
