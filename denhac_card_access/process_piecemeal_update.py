@@ -67,7 +67,7 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._logger.info(f"Processing update {update_id}")
 
         self._card_update_helper.handle(CardSetting(
-            card=command['card'],
+            card=int(command['card']),
             first_name=command['first_name'],
             last_name=command['last_name'],
             company=command['company'],
