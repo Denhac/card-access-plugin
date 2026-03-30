@@ -66,14 +66,19 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
         self._logger.info(f"Processing update {update_id}")
 
-        self._card_update_helper.handle(CardSetting(
+        setting = CardSetting(
             card=int(command['card']),
             first_name=command['first_name'],
             last_name=command['last_name'],
             company=command['company'],
             customer_id=command['woo_id'],
             enable_denhac=command['method'] == "enable"
-        ))
+        )
+
+        item = int(setting.customer_id), int(setting.card)
+        self._name_card_to_request[item] = update_id
+
+        self._card_update_helper.handle(setting)
 
     def card_data_pushed(self, access_card: AccessCard) -> None:
         self._card_update_helper.card_updated(access_card)
