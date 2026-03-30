@@ -1,0 +1,31 @@
+[project]
+name = "denhac-card-access"
+version = "1.0.0"
+description = "Denhac card access plugin for card-automation-server"
+requires-python = ">=3.10"
+dependencies = [
+    "card-automation-server @ git+https://github.com/card-automation/card-server",
+    "requests",
+    "tomlkit",
+    "uuid",
+]
+
+[tool.uv]
+override-dependencies = [
+    "pywin32; sys_platform == 'win32'",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["denhac_card_access*"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
