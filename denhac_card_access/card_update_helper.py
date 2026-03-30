@@ -17,7 +17,6 @@ class CardSetting:
     customer_id: int
     enable_denhac: bool = field(default=False)
     enable_server_room: bool = field(default=False)
-    can_open_house: bool = field(default=False)
 
 
 Callback = Callable[[CardSetting], None]
@@ -72,15 +71,13 @@ class CardUpdateHelper:
         updates: set[str] = set()
         if self._update_access(card, self._config.denhac_access, setting.enable_denhac):
             updates.add(("Adding" if setting.enable_denhac else "Removing") + " denhac")
+
         if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
             updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
 
         # denhac cards should not also get main building access
         if self._update_access(card, self._config.main_building_access, False):
             updates.add("Removing extra MBD")
-
-        if self._update_udf(card, self._config.udf_key_can_open_house, setting.can_open_house):
-            updates.add(("Adding" if setting.can_open_house else "Removing") + " open house")
 
         update_msg = self._join_with_and(list(updates))
         self._config.slack.emit(
@@ -110,20 +107,6 @@ class CardUpdateHelper:
 
         return False
 
-    def _update_udf(self, card: AccessCard, udf: str, should_be_active: bool) -> bool:
-        person = card.person
-        if udf in person.user_defined_fields and not should_be_active:
-            self._logger.info(f"Removing `{udf}` udf")
-            del person.user_defined_fields[udf]
-            return True
-
-        if udf not in person.user_defined_fields and should_be_active:
-            self._logger.info(f"Adding `{udf}` udf")
-            person.user_defined_fields[udf] = "True"
-            return True
-
-        return False
-
     @staticmethod
     def _join_with_and(items):
         if len(items) <= 1:
@@ -134,10 +117,10 @@ class CardUpdateHelper:
         person = access_card.person
         known_settings = [
             s for s in self._pending_settings
-            if s.card == access_card.card_number and s.customer_id == person.id
+            if s.card == access_card.card_number
         ]
         if len(known_settings) == 0:
-            self._logger.info(f"Could not find pending settings based on ({access_card.card_number}, {person.id})")
+            self._logger.info(f"Could not find pending settings based on {access_card.card_number}")
             return
 
         setting = known_settings.pop()
