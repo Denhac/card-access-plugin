@@ -69,24 +69,31 @@ class CardUpdateHelper:
 
         card.person = person
 
-        anything_updated = False
-        anything_updated |= self._update_access(card, self._config.denhac_access, setting.enable_denhac)
-        anything_updated |= self._update_access(card, self._config.server_room_access, setting.enable_server_room)
+        updates: set[str] = set()
+        if self._update_access(card, self._config.denhac_access, setting.enable_denhac):
+            updates.add(("Adding" if setting.enable_denhac else "Removing") + " denhac")
+        if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
+            updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
+
         # denhac cards should not also get main building access
-        anything_updated |= self._update_access(card, self._config.main_building_access, False)
+        if self._update_access(card, self._config.main_building_access, False):
+            updates.add("Removing extra MBD")
 
-        anything_updated |= self._update_udf(card, self._config.udf_key_can_open_house, setting.can_open_house)
+        if self._update_udf(card, self._config.udf_key_can_open_house, setting.can_open_house):
+            updates.add(("Adding" if setting.can_open_house else "Removing") + " open house")
 
+        update_msg = self._join_with_and(list(updates))
         self._config.slack.emit(
-            f"Updating card {setting.card} for {setting.first_name} {setting.last_name}"
+            f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
         )
 
         self._pending_settings.add(setting)
 
-        if anything_updated:
+        if len(updates):
             self._logger.info("Writing Card")
             card.write()
         else:
+            self._logger.info("Card already updated, marking as updated")
             self.card_updated(card)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
@@ -117,6 +124,12 @@ class CardUpdateHelper:
 
         return False
 
+    @staticmethod
+    def _join_with_and(items):
+        if len(items) <= 1:
+            return "".join(items)
+        return ", ".join(items[:-1]) + " and " + items[-1]
+
     def card_updated(self, access_card: AccessCard) -> None:
         person = access_card.person
         known_settings = [
@@ -124,6 +137,7 @@ class CardUpdateHelper:
             if s.card == access_card.card_number and s.customer_id == person.id
         ]
         if len(known_settings) == 0:
+            self._logger.info(f"Could not find pending settings based on ({access_card.card_number}, {person.id})")
             return
 
         setting = known_settings.pop()
