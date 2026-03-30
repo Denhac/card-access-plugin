@@ -79,19 +79,19 @@ class CardUpdateHelper:
         if self._update_access(card, self._config.main_building_access, False):
             updates.add("Removing extra MBD")
 
-        update_msg = self._join_with_and(list(updates))
-        self._config.slack.emit(
-            f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
-        )
-
         self._pending_settings.add(setting)
 
         if len(updates):
+            update_msg = self._join_with_and(list(updates))
+            self._config.slack.emit(
+                f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
+            )
+
             self._logger.info("Writing Card")
             card.write()
         else:
             self._logger.info("Card already updated, marking as updated")
-            self.card_updated(card)
+            self.card_updated(card, send_notice=False)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
         card_is_active = card.active and access in card.access
@@ -113,7 +113,7 @@ class CardUpdateHelper:
             return "".join(items)
         return ", ".join(items[:-1]) + " and " + items[-1]
 
-    def card_updated(self, access_card: AccessCard) -> None:
+    def card_updated(self, access_card: AccessCard, send_notice: bool = True) -> None:
         person = access_card.person
         known_settings = [
             s for s in self._pending_settings
@@ -121,13 +121,17 @@ class CardUpdateHelper:
         ]
         if len(known_settings) == 0:
             self._logger.info(f"Could not find pending settings based on {access_card.card_number}")
+            s: CardSetting
+            for s in self._pending_settings:
+                self._logger.info(str(s))
             return
 
         setting = known_settings.pop()
 
-        self._config.slack.emit(
-            f"Card {access_card.card_number} updated for {person.first_name} {person.last_name}"
-        )
+        if send_notice:
+            self._config.slack.emit(
+                f"Card {access_card.card_number} updated for {person.first_name} {person.last_name}"
+            )
 
         for cb in self._callbacks:
             cb(setting)
