@@ -1,4 +1,5 @@
 import uuid
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -41,57 +42,103 @@ class CardUpdateHelper:
     def register(self, cb: Callback) -> None:
         self._callbacks.add(cb)
 
-    def handle(self, setting: CardSetting) -> None:
-        customer_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, str(setting.customer_id)))
-
-        people = self._person_lookup.by_udf(self._config.udf_key_denhac_id, customer_uuid).find()
-
-        person: Person
-        if len(people) == 0:
-            person = self._person_lookup.new()
-            person.first_name = setting.first_name
-            person.last_name = setting.last_name
-            person.company_id = self._config.company_id
-            person.user_defined_fields[self._config.udf_key_denhac_id] = customer_uuid
-            person.write()
-            self._logger.info(f"Created person {person.id}: {person.first_name} {person.last_name}")
-        else:
-            person = people[0]
-            self._logger.info(f"Found person {person.id}: {person.first_name} {person.last_name}")
-
-        # We've got the person now. Time for the card
-
-        card_number = setting.card
-        card = self._access_card_lookup.by_card_number(card_number)
-        if card is None:
-            card = self._access_card_lookup.new(card_number)
-
-        card.person = person
-
-        updates: set[str] = set()
-        if self._update_access(card, self._config.denhac_access, setting.enable_denhac):
-            updates.add(("Adding" if setting.enable_denhac else "Removing") + " denhac")
-
-        if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
-            updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
-
-        # denhac cards should not also get main building access
-        if self._update_access(card, self._config.main_building_access, False):
-            updates.add("Removing extra MBD")
-
-        self._pending_settings.add(setting)
-
-        if len(updates):
-            update_msg = self._join_with_and(list(updates))
-            self._config.slack.emit(
-                f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
+    def handle(self, *settings: CardSetting) -> None:
+        card_counts = Counter(s.card for s in settings)
+        duplicate_cards = {card for card, count in card_counts.items() if count > 1}
+        for card_num in duplicate_cards:
+            self._logger.error(
+                f"Card number {card_num} appears more than once in the same handle call, skipping"
             )
 
-            self._logger.info("Writing Card")
-            card.write()
-        else:
-            self._logger.info("Card already updated, marking as updated")
-            self.card_updated(card, send_notice=False)
+        valid_settings = [s for s in settings if s.card not in duplicate_cards]
+
+        if not valid_settings:
+            return
+
+        unique_customer_ids = {s.customer_id for s in valid_settings}
+        uuid_by_customer_id = {
+            cid: str(uuid.uuid5(uuid.NAMESPACE_OID, str(cid)))
+            for cid in unique_customer_ids
+        }
+        uuid_to_customer_id = {v: k for k, v in uuid_by_customer_id.items()}
+
+        card_numbers = [s.card for s in valid_settings]
+        existing_cards: dict[int, AccessCard] = {
+            card.card_number: card
+            for card in self._access_card_lookup.with_people().by_card_numbers(*card_numbers)
+        }
+
+        # Build person map from eager-loaded card people where possible
+        person_by_customer_id: dict[int, Person] = {}
+        for card in existing_cards.values():
+            udf_value = card.person.user_defined_fields.get(self._config.udf_key_denhac_id)
+            if udf_value not in uuid_to_customer_id:
+                continue
+
+            customer_id = uuid_to_customer_id[udf_value]
+            if customer_id not in person_by_customer_id:
+                person_by_customer_id[customer_id] = card.person
+
+        # UDF lookup only for customer_ids not found via eager load
+        for customer_id in unique_customer_ids:
+            if customer_id in person_by_customer_id:
+                continue
+
+            customer_uuid = uuid_by_customer_id[customer_id]
+            setting_for_person = next(s for s in valid_settings if s.customer_id == customer_id)
+            people = self._person_lookup.by_udf(self._config.udf_key_denhac_id, customer_uuid).find()
+
+            if len(people) == 0:
+                person = self._person_lookup.new()
+                person.first_name = setting_for_person.first_name
+                person.last_name = setting_for_person.last_name
+                person.company_id = self._config.company_id
+                person.user_defined_fields[self._config.udf_key_denhac_id] = customer_uuid
+                person.write()
+                self._logger.info(f"Created person {person.id}: {person.first_name} {person.last_name}")
+            else:
+                person = people[0]
+                self._logger.info(f"Found person {person.id}: {person.first_name} {person.last_name}")
+
+            person_by_customer_id[customer_id] = person
+
+        for setting in valid_settings:
+            person = person_by_customer_id[setting.customer_id]
+            card_number = setting.card
+
+            updates: set[str] = set()
+
+            if card_number in existing_cards:
+                card = existing_cards[card_number]
+                if card.name_id != person.id:
+                    updates.add("Changing owner")
+            else:
+                card = self._access_card_lookup.new(card_number)
+
+            card.person = person
+
+            if self._update_access(card, self._config.denhac_access, setting.enable_denhac):
+                updates.add(("Adding" if setting.enable_denhac else "Removing") + " denhac")
+
+            if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
+                updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
+
+            # denhac cards should not also get main building access
+            if self._update_access(card, self._config.main_building_access, False):
+                updates.add("Removing extra MBD")
+
+            self._pending_settings.add(setting)
+
+            if len(updates):
+                update_msg = self._join_with_and(list(updates))
+                self._config.slack.emit(
+                    f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
+                )
+                self._logger.info("Writing Card")
+                card.write()
+            else:
+                self._logger.info("Card already updated, marking as updated")
+                self.card_updated(card, send_notice=False)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
         card_is_active = card.active and access in card.access

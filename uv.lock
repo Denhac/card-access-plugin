@@ -43,18 +43,18 @@ wheels = [
 [[package]]
 name = "card-automation-server"
 version = "1.0.0"
-source = { git = "https://github.com/card-automation/card-server#a0a6114ace23fa0a66e4f9c5850d2aaee4a54d21" }
+source = { git = "https://github.com/card-automation/card-server#c8f8ee1f1172e77013b1e8e99c6c836c504b57e7" }
 dependencies = [
     { name = "githubkit" },
     { name = "platformdirs" },
     { name = "psutil" },
     { name = "pyodbc" },
-    { name = "pytest" },
     { name = "requests" },
     { name = "sentry-sdk" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy-access" },
     { name = "tomlkit" },
+    { name = "typing-extensions" },
     { name = "watchdog" },
 ]
 
