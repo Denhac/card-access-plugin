@@ -137,7 +137,6 @@ class CardUpdateHelper:
                 self._logger.info(f"Writing Card {setting.card}")
                 card.write()
             else:
-                self._logger.info(f"Card {setting.card} already updated, marking as updated")
                 self.card_updated(card, send_notice=False)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
