@@ -141,13 +141,13 @@ class CardUpdateHelper:
                 self.card_updated(card, send_notice=False)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
-        card_is_active = card.active and access in card.access
-        if should_be_active and not card_is_active:
+        has_access = access in card.access
+        if should_be_active and not has_access:
             self._logger.info(f"Adding `{access}` access level to {card.card_number}")
             card.with_access(access)
             return True
 
-        if not should_be_active and card_is_active:
+        if not should_be_active and has_access:
             self._logger.info(f"Removing `{access}` from {card.card_number}")
             card.without_access(access)
             return True
