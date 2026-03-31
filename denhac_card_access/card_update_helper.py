@@ -134,10 +134,10 @@ class CardUpdateHelper:
                 self._config.slack.emit(
                     f"Updating card {setting.card} for {setting.first_name} {setting.last_name}: {update_msg}"
                 )
-                self._logger.info("Writing Card")
+                self._logger.info(f"Writing Card {setting.card}")
                 card.write()
             else:
-                self._logger.info("Card already updated, marking as updated")
+                self._logger.info(f"Card {setting.card} already updated, marking as updated")
                 self.card_updated(card, send_notice=False)
 
     def _update_access(self, card: AccessCard, access: str, should_be_active: bool) -> bool:
