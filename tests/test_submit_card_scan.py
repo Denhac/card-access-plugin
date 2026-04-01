@@ -74,6 +74,11 @@ class TestEarlyReturns:
         submit_card_scan.card_scanned(make_card_scan())
         mock_webhook_session.post.assert_not_called()
 
+    def test_no_post_when_name_id_is_none(self, submit_card_scan, mock_person_lookup, mock_webhook_session):
+        submit_card_scan.card_scanned(make_card_scan(name_id=None))
+        mock_person_lookup.by_id.assert_not_called()
+        mock_webhook_session.post.assert_not_called()
+
     def test_no_post_when_not_denhac_member(self, submit_card_scan, mock_person_lookup, mock_webhook_session):
         mock_person_lookup.by_id.return_value = make_mock_person(is_denhac_member=False)
         submit_card_scan.card_scanned(make_card_scan())

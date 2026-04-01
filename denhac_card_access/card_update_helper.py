@@ -166,10 +166,6 @@ class CardUpdateHelper:
             if s.card == access_card.card_number
         ]
         if len(known_settings) == 0:
-            self._logger.info(f"Could not find pending settings based on {access_card.card_number}")
-            s: CardSetting
-            for s in self._pending_settings:
-                self._logger.info(str(s))
             return
 
         setting = known_settings.pop()

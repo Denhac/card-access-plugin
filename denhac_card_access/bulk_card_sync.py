@@ -2,14 +2,15 @@ import uuid
 from datetime import timedelta
 from typing import Optional
 
-from card_automation_server.plugins.interfaces import PluginLoop
+from card_automation_server.plugins.interfaces import PluginLoop, PluginCardDataPushed
+from card_automation_server.windsx.lookup.access_card import AccessCard
 from card_automation_server.windsx.lookup.person import PersonLookup
 
 from denhac_card_access.card_update_helper import CardUpdateHelper, CardSetting
 from denhac_card_access.config import Config
 
 
-class BulkCardSync(PluginLoop):
+class BulkCardSync(PluginLoop, PluginCardDataPushed):
     def __init__(self,
                  config: Config,
                  card_update_helper: CardUpdateHelper,
@@ -53,6 +54,9 @@ class BulkCardSync(PluginLoop):
         self._update_can_open_house(can_open_house_ids)
 
         return int(timedelta(hours=6).total_seconds())
+
+    def card_data_pushed(self, access_card: AccessCard) -> None:
+        self._card_update_helper.card_updated(access_card)
 
     def _update_can_open_house(self, can_open_house_ids: set[int]) -> None:
         should_have_uuids = {

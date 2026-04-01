@@ -32,6 +32,9 @@ class SubmitCardScan(PluginCardScanned):
         if door is None:
             return
 
+        if card_scan.name_id is None:
+            return
+
         access_granted: bool = card_scan.event_type == CommServerEventType.ACCESS_GRANTED
         person: Person = self._person_lookup.by_id(card_scan.name_id)
 
