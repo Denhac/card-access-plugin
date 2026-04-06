@@ -169,6 +169,7 @@ class CardUpdateHelper:
             return
 
         setting = known_settings.pop()
+        self._pending_settings.discard(setting)
 
         if send_notice:
             self._config.slack.emit(

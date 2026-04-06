@@ -287,3 +287,38 @@ class TestAccessUpdates:
         mock_access_card_lookup.by_card_numbers.return_value = [card]
         helper.handle(make_setting(card=12345, customer_id=100, enable_denhac=True))
         mock_config.slack.emit.assert_not_called()
+
+
+class TestCardUpdated:
+    def test_card_updated_sends_slack(self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100)
+        card = make_mock_card(card_number=12345, access=[], person=person)
+        helper.handle(make_setting(card=12345, enable_denhac=True))
+        mock_config.slack.emit.reset_mock()
+
+        helper.card_updated(card)
+
+        mock_config.slack.emit.assert_called_once()
+
+    def test_card_updated_twice_only_sends_slack_once(self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100)
+        card = make_mock_card(card_number=12345, access=[], person=person)
+        helper.handle(make_setting(card=12345, enable_denhac=True))
+        mock_config.slack.emit.reset_mock()
+
+        helper.card_updated(card)
+        helper.card_updated(card)
+
+        mock_config.slack.emit.assert_called_once()
+
+    def test_card_updated_twice_only_fires_callback_once(self, helper, mock_access_card_lookup):
+        person = make_mock_person(name_id=42, customer_id=100)
+        card = make_mock_card(card_number=12345, access=[], person=person)
+        callback = Mock()
+        helper.register(callback)
+        helper.handle(make_setting(card=12345, enable_denhac=True))
+
+        helper.card_updated(card)
+        helper.card_updated(card)
+
+        callback.assert_called_once()
