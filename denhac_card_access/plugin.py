@@ -1,6 +1,6 @@
-from card_automation_server.ioc import Resolver
 from card_automation_server.plugins.error_handling import ErrorHandler, SentryErrorHandler
 from card_automation_server.plugins.setup import AutoDiscoverPlugins, HasErrorHandler
+from ioc import Resolver
 
 from denhac_card_access.config import Config
 

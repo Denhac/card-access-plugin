@@ -7,6 +7,7 @@ dependencies = [
     "card-automation-server @ git+https://github.com/card-automation/card-server",
     "requests",
     "tomlkit",
+    "type-ioc",
     "uuid",
 ]
 
