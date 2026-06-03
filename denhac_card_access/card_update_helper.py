@@ -98,7 +98,6 @@ class CardUpdateHelper:
                 self._logger.info(f"Created person {person.id}: {person.first_name} {person.last_name}")
             else:
                 person = people[0]
-                self._logger.info(f"Found person {person.id}: {person.first_name} {person.last_name}")
 
             person_by_customer_id[customer_id] = person
 
