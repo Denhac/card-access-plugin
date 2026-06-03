@@ -8,19 +8,28 @@ from card_automation_server.windsx.lookup.person import PersonLookup
 
 from denhac_card_access.card_update_helper import CardUpdateHelper, CardSetting
 from denhac_card_access.config import Config
+from denhac_card_access.plugin import CardSyncMutex
 
 
 class BulkCardSync(PluginLoop, PluginCardDataPushed):
     def __init__(self,
                  config: Config,
                  card_update_helper: CardUpdateHelper,
-                 person_lookup: PersonLookup):
+                 person_lookup: PersonLookup,
+                 card_sync_mutex: CardSyncMutex):
         self._config = config
         self._logger = config.logger
         self._card_update_helper = card_update_helper
         self._person_lookup = person_lookup
+        self._card_sync_mutex = card_sync_mutex
 
     def loop(self) -> int:
+        with self._card_sync_mutex:
+            self._loop_locked()
+
+        return int(timedelta(hours=6).total_seconds())
+
+    def _loop_locked(self):
         all_settings: list[CardSetting] = []
         can_open_house_ids: set[int] = set()
 
@@ -52,8 +61,6 @@ class BulkCardSync(PluginLoop, PluginCardDataPushed):
 
         self._card_update_helper.handle(*all_settings)
         self._update_can_open_house(can_open_house_ids)
-
-        return int(timedelta(hours=6).total_seconds())
 
     def card_data_pushed(self, access_card: AccessCard) -> None:
         self._card_update_helper.card_updated(access_card)

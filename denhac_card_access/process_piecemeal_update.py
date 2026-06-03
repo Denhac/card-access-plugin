@@ -6,6 +6,7 @@ from card_automation_server.windsx.lookup.access_card import AccessCard
 
 from denhac_card_access.card_update_helper import CardUpdateHelper, CardSetting
 from denhac_card_access.config import Config
+from denhac_card_access.plugin import CardSyncMutex
 
 
 class _CardCommand(TypedDict):
@@ -22,10 +23,12 @@ class _CardCommand(TypedDict):
 class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
     def __init__(self,
                  config: Config,
-                 card_update_helper: CardUpdateHelper
+                 card_update_helper: CardUpdateHelper,
+                 card_sync_mutex: CardSyncMutex
                  ):
         self._config = config
         self._logger = config.logger
+        self._card_sync_mutex = card_sync_mutex
 
         if self._config.slack.webhook_url is None:
             raise Exception("Slack webhook url cannot be None")
@@ -40,13 +43,17 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._name_card_to_request: dict[Tuple[int, int], int] = {}
 
     def loop(self) -> Optional[int]:
+        with self._card_sync_mutex:
+            self._loop_locked()
+
+        return int(timedelta(minutes=1).total_seconds())
+
+    def _loop_locked(self):
         for command in self._get_commands():
             try:
                 self._maybe_handle_request(command)
             finally:
                 self._known_requests.add(command["id"])
-
-        return int(timedelta(minutes=1).total_seconds())
 
     def _get_commands(self) -> list[_CardCommand]:
         response = self._config.webhooks.session.get(f"{self._api_base}/card_updates")
