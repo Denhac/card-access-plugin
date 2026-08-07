@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import TypedDict, Literal, Optional, Tuple
+from typing import TypedDict, Literal
 
 from card_automation_server.plugins.interfaces import PluginLoop, PluginCardDataPushed
 from card_automation_server.windsx.lookup.access_card import AccessCard
@@ -39,10 +39,9 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._card_update_helper = card_update_helper
         self._card_update_helper.register(self._mark_complete)
 
-        self._known_requests: set[int] = set()
-        self._name_card_to_request: dict[Tuple[int, int], int] = {}
+        self._updates_in_flight: set[int] = set()
 
-    def loop(self) -> Optional[int]:
+    def loop(self) -> int:
         with self._card_sync_mutex:
             self._loop_locked()
 
@@ -50,10 +49,15 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
     def _loop_locked(self):
         for command in self._get_commands():
+            update_id = command["id"]
+            if update_id in self._updates_in_flight:
+                continue
+
             try:
                 self._maybe_handle_request(command)
-            finally:
-                self._known_requests.add(command["id"])
+            except Exception:
+                self._updates_in_flight.discard(update_id)
+                raise
 
     def _get_commands(self) -> list[_CardCommand]:
         response = self._config.webhooks.session.get(f"{self._api_base}/card_updates")
@@ -68,8 +72,6 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
 
     def _maybe_handle_request(self, command: _CardCommand):
         update_id = command["id"]
-        if update_id in self._known_requests:
-            return
 
         self._logger.info(f"Processing update {update_id}")
 
@@ -79,11 +81,11 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
             last_name=command['last_name'],
             company=command['company'],
             customer_id=command['woo_id'],
-            enable_denhac=command['method'] == "enable"
+            enable_denhac=command['method'] == "enable",
+            update_id=update_id,
         )
 
-        item = int(setting.customer_id), int(setting.card)
-        self._name_card_to_request[item] = update_id
+        self._updates_in_flight.add(update_id)
 
         self._card_update_helper.handle(setting)
 
@@ -91,15 +93,14 @@ class ProcessPiecemealUpdate(PluginLoop, PluginCardDataPushed):
         self._card_update_helper.card_updated(access_card)
 
     def _mark_complete(self, setting: CardSetting) -> None:
-        item = int(setting.customer_id), int(setting.card)
-        update_id = self._name_card_to_request[item]
+        if setting.update_id is None:
+            # Shouldn't happen for this, but just to be on the safe side
+            return
 
-        self._logger.info(f"Processed update {update_id}")
-        del self._name_card_to_request[item]
-        if update_id in self._known_requests:
-            self._known_requests.remove(update_id)
+        self._logger.info(f"Processed update {setting.update_id}")
+        self._updates_in_flight.discard(setting.update_id)
 
-        self._submit_status(update_id, "success")
+        self._submit_status(setting.update_id, "success")
 
     def _submit_status(self, update_id: int, status: str):
         url = f"{self._api_base}/card_updates/{update_id}/status"

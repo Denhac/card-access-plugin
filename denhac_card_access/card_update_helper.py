@@ -1,7 +1,7 @@
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Optional
 
 from card_automation_server.windsx.lookup.access_card import AccessCardLookup, AccessCard
 from card_automation_server.windsx.lookup.person import PersonLookup, Person
@@ -18,6 +18,7 @@ class CardSetting:
     customer_id: int
     enable_denhac: bool = field(default=False)
     enable_server_room: bool = field(default=False)
+    update_id: Optional[int] = field(default=None)
 
 
 Callback = Callable[[CardSetting], None]
