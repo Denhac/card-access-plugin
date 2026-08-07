@@ -72,7 +72,11 @@ class CardUpdateHelper:
         # Build person map from eager-loaded card people where possible
         person_by_customer_id: dict[int, Person] = {}
         for card in existing_cards.values():
-            udf_value = card.person.user_defined_fields.get(self._config.udf_key_denhac_id)
+            person = card.person
+            if person is None:
+                self._logger.error(f"Card {card.card_number} has no person with name id {card.name_id}")
+                continue
+            udf_value = person.user_defined_fields.get(self._config.udf_key_denhac_id)
             if udf_value not in uuid_to_customer_id:
                 continue
 
