@@ -10,6 +10,24 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
+# (connect, read) seconds.
+DEFAULT_WEBHOOK_TIMEOUT = (5, 30)
+
+
+class _TimeoutSession(Session):
+    """Session that applies a default timeout to every request unless the  caller overrides it. Required because
+    requests.Session has no native default-timeout, and a missing timeout blocks the worker thread on a stalled
+    response."""
+
+    def __init__(self, timeout=DEFAULT_WEBHOOK_TIMEOUT):
+        super().__init__()
+        self._default_timeout = timeout
+
+    # noinspection method-overriding
+    def request(self, method, url, **kwargs):
+        kwargs.setdefault("timeout", self._default_timeout)
+        return super().request(method, url, **kwargs)
+
 
 # Enum values match weekday() from datetime.weekday()
 class Weekday(enum.IntEnum):
@@ -75,13 +93,18 @@ class _WebhookConfig(ConfigHolder):
         if self.api_key is None:
             raise Exception("Webhooks api key cannot be None")
 
-        session = requests.Session()
+        session = _TimeoutSession()
         session.headers["Authorization"] = f"Bearer {self.api_key}"
         session.headers["Accept"] = "application/json"
 
-        retries = Retry(total=50,
-                        backoff_factor=0.1,
-                        status_forcelist=[500, 502, 503, 504])
+        retries = Retry(
+            total=5,
+            connect=5,
+            read=5,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=frozenset(["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"]),
+        )
 
         session.mount('https://', HTTPAdapter(max_retries=retries))
 
@@ -110,7 +133,7 @@ class _SlackConfig(ConfigHolder):
             ]
         }
 
-        requests.post(self.webhook_url, json=payload)
+        requests.post(self.webhook_url, json=payload, timeout=30)
 
     def user_id_by_email(self, email: str) -> Optional[str]:
         if self.management_token is None:
@@ -123,7 +146,8 @@ class _SlackConfig(ConfigHolder):
             },
             headers={
                 "Authorization": f"Bearer {self.management_token}"
-            }
+            },
+            timeout=30,
         )
 
         response.raise_for_status()
@@ -162,7 +186,8 @@ class _SlackConfig(ConfigHolder):
                 'channels': ','.join(channels),
                 '_x_reason': 'submit-invite-to-workspace-invites',
                 '_x_node': 'online',
-            }
+            },
+            timeout=30,
         )
 
         response.raise_for_status()
