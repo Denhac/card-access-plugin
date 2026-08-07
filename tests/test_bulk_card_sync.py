@@ -65,8 +65,8 @@ def mock_person_lookup():
 
 
 @pytest.fixture
-def bulk_sync(mock_config, mock_card_update_helper, mock_person_lookup):
-    return BulkCardSync(mock_config, mock_card_update_helper, mock_person_lookup)
+def bulk_sync(mock_config, mock_card_update_helper, mock_person_lookup, card_sync_mutex):
+    return BulkCardSync(mock_config, mock_card_update_helper, mock_person_lookup, card_sync_mutex)
 
 
 class TestPagination:

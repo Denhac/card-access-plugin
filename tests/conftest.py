@@ -1,6 +1,12 @@
+import threading
 from unittest.mock import Mock, MagicMock
 
 import pytest
+
+
+@pytest.fixture
+def card_sync_mutex() -> threading.Lock:
+    return threading.Lock()
 
 
 @pytest.fixture

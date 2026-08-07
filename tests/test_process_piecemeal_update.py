@@ -38,8 +38,8 @@ def mock_card_update_helper():
 
 
 @pytest.fixture
-def process_piecemeal_update(mock_config, mock_card_update_helper):
-    return ProcessPiecemealUpdate(mock_config, mock_card_update_helper)
+def process_piecemeal_update(mock_config, mock_card_update_helper, card_sync_mutex):
+    return ProcessPiecemealUpdate(mock_config, mock_card_update_helper, card_sync_mutex)
 
 
 @pytest.fixture
@@ -48,15 +48,15 @@ def mark_complete(mock_card_update_helper):
 
 
 class TestConstructor:
-    def test_raises_if_slack_webhook_url_is_none(self, mock_config, mock_card_update_helper):
+    def test_raises_if_slack_webhook_url_is_none(self, mock_config, mock_card_update_helper, card_sync_mutex):
         mock_config.slack.webhook_url = None
         with pytest.raises(Exception):
-            ProcessPiecemealUpdate(mock_config, mock_card_update_helper)
+            ProcessPiecemealUpdate(mock_config, mock_card_update_helper, card_sync_mutex)
 
-    def test_raises_if_base_url_is_none(self, mock_config, mock_card_update_helper):
+    def test_raises_if_base_url_is_none(self, mock_config, mock_card_update_helper, card_sync_mutex):
         mock_config.webhooks.base_url = None
         with pytest.raises(Exception):
-            ProcessPiecemealUpdate(mock_config, mock_card_update_helper)
+            ProcessPiecemealUpdate(mock_config, mock_card_update_helper, card_sync_mutex)
 
     def test_registers_mark_complete_callback(self, mock_card_update_helper, process_piecemeal_update):
         mock_card_update_helper.register.assert_called_once()
