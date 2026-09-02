@@ -6,6 +6,7 @@ import pytest
 from denhac_card_access.card_update_helper import CardSetting, CardUpdateHelper
 
 UDF_KEY = 'DENHAC_ID'  # Must match mock_config.udf_key_denhac_id
+COMPANY_ID = 14  # Must match mock_config.company_id
 
 
 def customer_uuid(customer_id: int) -> str:
@@ -25,9 +26,11 @@ def make_setting(card=12345, customer_id=100, first_name="John", last_name="Doe"
     )
 
 
-def make_mock_person(name_id=1, customer_id=100, first_name="John", last_name="Doe"):
+def make_mock_person(name_id=1, customer_id=100, first_name="John", last_name="Doe",
+                     company_id=COMPANY_ID):
     person = Mock()
     person.id = name_id
+    person.company_id = company_id
     person.in_db = True
     person.first_name = first_name
     person.last_name = last_name
@@ -243,6 +246,26 @@ class TestAccessUpdates:
         mock_access_card_lookup.by_card_numbers.return_value = [card]
         helper.handle(make_setting(card=12345, customer_id=100))
         card.without_access.assert_called_with(mock_config.main_building_access)
+
+    def test_mbd_access_not_removed_for_person_in_another_company(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100, company_id=mock_config.company_id + 1)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access, mock_config.main_building_access],
+                              person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_denhac=True))
+        card.without_access.assert_not_called()
+
+    def test_card_not_written_when_other_company_keeps_mbd_access(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100, company_id=mock_config.company_id + 1)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access, mock_config.main_building_access],
+                              person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_denhac=True))
+        card.write.assert_not_called()
 
     def test_card_written_when_access_changes(self, helper, mock_access_card_lookup):
         card = mock_access_card_lookup.new.return_value

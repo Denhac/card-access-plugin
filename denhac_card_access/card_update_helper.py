@@ -127,9 +127,11 @@ class CardUpdateHelper:
             if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
                 updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
 
-            # denhac cards should not also get main building access
-            if self._update_access(card, self._config.main_building_access, False):
-                updates.add("Removing extra MBD")
+            # denhac cards should not also get main building access, but people in other companies
+            # may legitimately have it
+            if person.company_id == self._config.company_id:
+                if self._update_access(card, self._config.main_building_access, False):
+                    updates.add("Removing extra MBD")
 
             self._pending_settings.add(setting)
 
