@@ -1,5 +1,5 @@
 import uuid
-from collections import Counter
+ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -121,15 +121,19 @@ class CardUpdateHelper:
 
             card.person = person
 
+            # People in other companies may have been given access outside being a denhac member, so we have to be more
+            # cautious in what we remove.
+            is_denhac_person = person.company_id == self._config.company_id
+
             if self._update_access(card, self._config.denhac_access, setting.enable_denhac):
                 updates.add(("Adding" if setting.enable_denhac else "Removing") + " denhac")
 
-            if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
-                updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
+            if setting.enable_server_room or is_denhac_person:
+                if self._update_access(card, self._config.server_room_access, setting.enable_server_room):
+                    updates.add(("Adding" if setting.enable_server_room else "Removing") + " server room")
 
-            # denhac cards should not also get main building access, but people in other companies
-            # may legitimately have it
-            if person.company_id == self._config.company_id:
+            # denhac cards should not also get main building access
+            if is_denhac_person:
                 if self._update_access(card, self._config.main_building_access, False):
                     updates.add("Removing extra MBD")
 

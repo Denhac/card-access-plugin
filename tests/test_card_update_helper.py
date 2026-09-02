@@ -238,6 +238,45 @@ class TestAccessUpdates:
         helper.handle(make_setting(card=12345, enable_server_room=True))
         card.with_access.assert_called_with(mock_config.server_room_access)
 
+    def test_server_room_access_removed_when_card_has_it_and_disabled(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access, mock_config.server_room_access],
+                              person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_server_room=False))
+        card.without_access.assert_called_with(mock_config.server_room_access)
+
+    def test_server_room_access_not_removed_for_person_in_another_company(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100, company_id=mock_config.company_id + 1)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access, mock_config.server_room_access],
+                              person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_server_room=False))
+        card.without_access.assert_not_called()
+
+    def test_server_room_access_still_added_for_person_in_another_company(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100, company_id=mock_config.company_id + 1)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access], person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_server_room=True))
+        card.with_access.assert_called_with(mock_config.server_room_access)
+
+    def test_card_not_written_when_other_company_keeps_server_room_access(
+            self, helper, mock_access_card_lookup, mock_config):
+        person = make_mock_person(name_id=42, customer_id=100, company_id=mock_config.company_id + 1)
+        card = make_mock_card(card_number=12345, name_id=42, active=True,
+                              access=[mock_config.denhac_access, mock_config.server_room_access],
+                              person=person)
+        mock_access_card_lookup.by_card_numbers.return_value = [card]
+        helper.handle(make_setting(card=12345, customer_id=100, enable_server_room=False))
+        card.write.assert_not_called()
+
     def test_mbd_access_removed_when_card_has_it(
             self, helper, mock_access_card_lookup, mock_config):
         person = make_mock_person(name_id=42, customer_id=100)
