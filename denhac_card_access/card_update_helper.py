@@ -1,5 +1,5 @@
 import uuid
- from collections import Counter
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
